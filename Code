@@ -85,21 +85,21 @@ public class TikTakToe {
         // Check all rows and columns
         // Return [i, j] of the position that can be won
         int[] pos = new int[2];
-        
+
         // Check if CPU can win
         pos = recognizePattern(mat, 'o');
         if (pos != null)
-        return pos;
-        
+            return pos;
+
         // If can't won, tries blocking the player
         pos = recognizePattern(mat, 'x');
         if (pos != null)
-        return pos;
-        
+            return pos;
+
         // Don't have a specific play
         return null;
     }
-    
+
     public static int[] recognizePattern(char[][] mat, char simbol) {
         // Check Rows
         for (int i = 0; i < 3; i++) {
@@ -107,62 +107,110 @@ public class TikTakToe {
             int blank = -1;
             for (int j = 0; j < 3; j++) {
                 if (mat[i][j] == simbol)
-                count++;
+                    count++;
                 else if (mat[i][j] != 'x' && mat[i][j] != 'o')
-                blank = j;
+                    blank = j;
             }
             if (count == 2 && blank != -1)
-            return new int[] { i, blank };
+                return new int[] { i, blank };
         }
-        
+
         // Check Columns
         for (int j = 0; j < 3; j++) {
             int count = 0;
             int blank = -1;
             for (int i = 0; i < 3; i++) {
                 if (mat[i][j] == simbol)
-                count++;
+                    count++;
                 else if (mat[i][j] != 'x' && mat[i][j] != 'o')
-                blank = i;
+                    blank = i;
             }
             if (count == 2 && blank != -1)
-            return new int[] { blank, j };
+                return new int[] { blank, j };
         }
-        
+
         // Check Main Diagonal
         int countDiag = 0, blankDiag = -1;
         for (int i = 0; i < 3; i++) {
             if (mat[i][i] == simbol)
-            countDiag++;
+                countDiag++;
             else if (mat[i][i] != 'x' && mat[i][i] != 'o')
-            blankDiag = i;
+                blankDiag = i;
         }
         if (countDiag == 2 && blankDiag != -1)
-        return new int[] { blankDiag, blankDiag };
-        
+            return new int[] { blankDiag, blankDiag };
+
         // Check Secundary Diagonal
         countDiag = 0;
         blankDiag = -1;
         for (int i = 0; i < 3; i++) {
             if (mat[i][2 - i] == simbol)
-            countDiag++;
+                countDiag++;
             else if (mat[i][2 - i] != 'x' && mat[i][2 - i] != 'o')
-            blankDiag = i;
+                blankDiag = i;
         }
         if (countDiag == 2 && blankDiag != -1)
-        return new int[] { blankDiag, 2 - blankDiag };
-        
+            return new int[] { blankDiag, 2 - blankDiag };
+
         // If hasn't a threat return null
         return null;
     }
-    
+
+    public static boolean cpuPlayEasy(char[][] position, int qtd_plays, Random random) {
+        int playCPU = random.nextInt(9 - qtd_plays);
+
+        for (int i = 0; i < position.length; i++) {
+            for (int j = 0; j < position[i].length; j++) {
+                // Skip occupied cells
+                if (position[i][j] == 'x' || position[i][j] == 'o')
+                    continue;
+
+                // When the random counter reaches zero, play here
+                if (playCPU == 0) {
+                    position[i][j] = 'o';
+                    return true;
+                }
+
+                playCPU--;
+            }
+        }
+
+        return false; // CPU couldn't play (should never happen)
+    }
+
+    public static boolean cpuPlayHard(char[][] position) {
+        int[] threat = findThreat(position);
+
+        // If a winning or blocking move exists, play there
+        if (threat != null) {
+            position[threat[0]][threat[1]] = 'o';
+            return true;
+        }
+
+        // Otherwise, play randomly like the easy mode
+        Random random = new Random();
+        return cpuPlayEasy(position, countPlays(position), random);
+    }
+
+    // Counts total number of moves made on the board
+    public static int countPlays(char[][] mat) {
+        int count = 0;
+        for (int i = 0; i < mat.length; i++) {
+            for (int j = 0; j < mat[i].length; j++) {
+                if (mat[i][j] == 'x' || mat[i][j] == 'o')
+                    count++;
+            }
+        }
+        return count;
+    }
+
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
         Random random = new Random();
         char play;
         int qtd_plays = 0;
         int dificuldade;
-        
+
         do {
             System.out.print("Escolha a dificuldade:\n1 - Fácil\n2 - Difícil\n");
             while (!scanner.hasNextInt()) {
@@ -170,7 +218,7 @@ public class TikTakToe {
                 scanner.next();
             }
             dificuldade = scanner.nextInt();
-            scanner.nextLine(); 
+            scanner.nextLine();
         } while (dificuldade != 1 && dificuldade != 2);
 
         // Creates an array with the position in game
@@ -225,44 +273,19 @@ public class TikTakToe {
                 }
             }
 
-            // CPU play and verify to not play and do an index in case of the game is going
-            // to be a draw
             if (qtd_plays < 9) {
-
                 boolean hasPlayed = false;
 
-                // Hard Mode
+                // Choose CPU difficulty mode
                 if (dificuldade == 2) {
-                    int[] ameaca = findThreat(position);
-                    if (ameaca != null) {
-                        position[ameaca[0]][ameaca[1]] = 'o';
-                        hasPlayed = true;
-                    }
-                }
-
-                // EASY MODE → All Random
-                if (!hasPlayed) {
-                    int playCPU = random.nextInt(9 - qtd_plays);
-                    for (int i = 0; i < position.length && !hasPlayed; i++) {
-                        for (int j = 0; j < position[i].length; j++) {
-                            // Pula casas ocupadas
-                            if (position[i][j] == 'x' || position[i][j] == 'o')
-                                continue;
-
-                            if (playCPU == 0) {
-                                position[i][j] = 'o';
-                                hasPlayed = true;
-                                break;
-                            }
-                            playCPU--;
-                        }
-                    }
+                    hasPlayed = cpuPlayHard(position);
+                } else {
+                    hasPlayed = cpuPlayEasy(position, qtd_plays, random);
                 }
 
                 if (hasPlayed)
                     qtd_plays++;
             }
-
             // Check if someone has winned
             char winner = getWinner(position);
 
