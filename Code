@@ -3,6 +3,9 @@ import java.util.Scanner;
 
 public class TikTakToe {
 
+    public static char playerSymbol;
+    public static char cpuSymbol;
+
     public static void print_velha(char mat[][]) {
         for (int i = 0; i < mat.length; i++) {
             System.out.println();
@@ -80,26 +83,7 @@ public class TikTakToe {
         return ' ';
     }
 
-    // Return pos [row, column] where CPU has to block
-    public static int[] findThreat(char[][] mat) {
-        // Check all rows and columns
-        // Return [i, j] of the position that can be won
-        int[] pos = new int[2];
-
-        // Check if CPU can win
-        pos = recognizePattern(mat, 'o');
-        if (pos != null)
-            return pos;
-
-        // If can't won, tries blocking the player
-        pos = recognizePattern(mat, 'x');
-        if (pos != null)
-            return pos;
-
-        // Don't have a specific play
-        return null;
-    }
-
+    // Detects either an attack or a threat depending on the given symbol
     public static int[] recognizePattern(char[][] mat, char simbol) {
         // Check Rows
         for (int i = 0; i < 3; i++) {
@@ -108,7 +92,7 @@ public class TikTakToe {
             for (int j = 0; j < 3; j++) {
                 if (mat[i][j] == simbol)
                     count++;
-                else if (mat[i][j] != 'x' && mat[i][j] != 'o')
+                else if (mat[i][j] != playerSymbol && mat[i][j] != cpuSymbol)
                     blank = j;
             }
             if (count == 2 && blank != -1)
@@ -122,7 +106,7 @@ public class TikTakToe {
             for (int i = 0; i < 3; i++) {
                 if (mat[i][j] == simbol)
                     count++;
-                else if (mat[i][j] != 'x' && mat[i][j] != 'o')
+                else if (mat[i][j] != playerSymbol && mat[i][j] != cpuSymbol)
                     blank = i;
             }
             if (count == 2 && blank != -1)
@@ -134,25 +118,45 @@ public class TikTakToe {
         for (int i = 0; i < 3; i++) {
             if (mat[i][i] == simbol)
                 countDiag++;
-            else if (mat[i][i] != 'x' && mat[i][i] != 'o')
+            else if (mat[i][i] != playerSymbol && mat[i][i] != cpuSymbol)
                 blankDiag = i;
         }
         if (countDiag == 2 && blankDiag != -1)
             return new int[] { blankDiag, blankDiag };
 
-        // Check Secundary Diagonal
+        // Check Secondary Diagonal
         countDiag = 0;
         blankDiag = -1;
         for (int i = 0; i < 3; i++) {
             if (mat[i][2 - i] == simbol)
                 countDiag++;
-            else if (mat[i][2 - i] != 'x' && mat[i][2 - i] != 'o')
+            else if (mat[i][2 - i] != playerSymbol && mat[i][2 - i] != cpuSymbol)
                 blankDiag = i;
         }
         if (countDiag == 2 && blankDiag != -1)
             return new int[] { blankDiag, 2 - blankDiag };
 
-        // If hasn't a threat return null
+        // If there is no pattern, return null
+        return null;
+    }
+
+    // Return pos [row, column] where CPU has to block
+    public static int[] findThreat(char[][] mat) {
+        // Check all rows and columns
+        // Return [i, j] of the position that can be won
+        int[] pos = new int[2];
+
+        // Check if CPU can win first
+        pos = recognizePattern(mat, cpuSymbol); // ← trocado 'o' por cpuSymbol
+        if (pos != null)
+            return pos;
+
+        // If CPU can't win, try to block the player
+        pos = recognizePattern(mat, playerSymbol); // ← trocado 'x' por playerSymbol
+        if (pos != null)
+            return pos;
+
+        // No winning or blocking move found
         return null;
     }
 
@@ -167,7 +171,7 @@ public class TikTakToe {
 
                 // When the random counter reaches zero, play here
                 if (playCPU == 0) {
-                    position[i][j] = 'o';
+                    position[i][j] = cpuSymbol; // ← trocado 'o' por cpuSymbol
                     return true;
                 }
 
@@ -178,12 +182,19 @@ public class TikTakToe {
         return false; // CPU couldn't play (should never happen)
     }
 
+    // CPU hard mode: tries to win or block before playing randomly
     public static boolean cpuPlayHard(char[][] position) {
-        int[] threat = findThreat(position);
+        // First, try to find a winning move for the CPU
+        int[] attack = recognizePattern(position, cpuSymbol);
+        if (attack != null) {
+            position[attack[0]][attack[1]] = cpuSymbol;
+            return true;
+        }
 
-        // If a winning or blocking move exists, play there
+        // If no winning move, try to block the player's threat
+        int[] threat = recognizePattern(position, playerSymbol);
         if (threat != null) {
-            position[threat[0]][threat[1]] = 'o';
+            position[threat[0]][threat[1]] = cpuSymbol;
             return true;
         }
 
@@ -197,7 +208,7 @@ public class TikTakToe {
         int count = 0;
         for (int i = 0; i < mat.length; i++) {
             for (int j = 0; j < mat[i].length; j++) {
-                if (mat[i][j] == 'x' || mat[i][j] == 'o')
+                if (mat[i][j] == playerSymbol || mat[i][j] == cpuSymbol)
                     count++;
             }
         }
@@ -211,6 +222,7 @@ public class TikTakToe {
         int qtd_plays = 0;
         int dificuldade;
 
+        // Dificulty selector 1 for easy 2 for hard
         do {
             System.out.print("Escolha a dificuldade:\n1 - Fácil\n2 - Difícil\n");
             while (!scanner.hasNextInt()) {
@@ -221,8 +233,38 @@ public class TikTakToe {
             scanner.nextLine();
         } while (dificuldade != 1 && dificuldade != 2);
 
+        // Select Simbol
+        do {
+            System.out.print("Escolha seu símbolo:\nX - Jogar com X\nO - Jogar com O\n");
+            String input = scanner.next().toLowerCase();
+            if (input.equals("x")) {
+                playerSymbol = 'x';
+                cpuSymbol = 'o';
+            } else if (input.equals("o")) {
+                playerSymbol = 'o';
+                cpuSymbol = 'x';
+            } else {
+                System.out.println("Digite apenas X ou O!\n");
+                continue;
+            }
+            break;
+        } while (true);
+
         // Creates an array with the position in game
         char position[][] = { { 'a', 'b', 'c' }, { 'd', 'e', 'f' }, { 'g', 'h', 'i' } };
+
+        // If player chose 'O', CPU starts first
+        if (playerSymbol == 'o') {
+            System.out.println("\nCPU começa o jogo!\n");
+            boolean hasPlayed;
+            if (dificuldade == 2) {
+                hasPlayed = cpuPlayHard(position);
+            } else {
+                hasPlayed = cpuPlayEasy(position, qtd_plays, random);
+            }
+            if (hasPlayed)
+                qtd_plays++;
+        }
 
         for (;;) {
             print_velha(position);
@@ -263,16 +305,17 @@ public class TikTakToe {
 
             } while (!valid || isOcupidy);
 
-            // Check the x player play to switch it to x
+            // Check the player play to switch it to player choice
             for (int i = 0; i < position.length; i++) {
                 for (int j = 0; j < position[i].length; j++) {
                     if (position[i][j] == play) {
-                        position[i][j] = 'x';
+                        position[i][j] = playerSymbol;
                         qtd_plays++;
                     }
                 }
             }
 
+            // Check if game has been a draw
             if (qtd_plays < 9) {
                 boolean hasPlayed = false;
 
@@ -286,11 +329,12 @@ public class TikTakToe {
                 if (hasPlayed)
                     qtd_plays++;
             }
+
             // Check if someone has winned
             char winner = getWinner(position);
 
             // Exhib a message if the player has winned
-            if (winner == 'x') {
+            if (winner == playerSymbol) {
                 // Print the last array
                 print_velha(position);
                 for (int i = 40; i <= 47; i++) {
@@ -305,7 +349,7 @@ public class TikTakToe {
                 break;
             }
             // Exhib a message if the CPU has winned
-            else if (winner == 'o') {
+            else if (winner == cpuSymbol) {
                 // Print the last array
                 print_velha(position);
                 for (int i = 40; i <= 47; i++) {
